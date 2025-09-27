@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BATARA - Bermain Tantangan Budaya Prambanan</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #8B4513, #D2691E, #CD853F);
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            min-height: 100vh;
+            align-items: flex-start;
+        }
+
+        .board-container {
+            flex: 1;
+            max-width: 600px;
+            background: linear-gradient(45deg, #F4A460, #DEB887);
+            border: 8px solid #8B4513;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .board-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(139, 69, 19, 0.1) 2px, transparent 2px),
+                radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.1) 2px, transparent 2px);
+            background-size: 40px 40px;
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            background: #8B4513;
+            padding: 10px;
+            border-radius: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #F5DEB3, #DEB887);
+            border: 2px solid #8B4513;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #8B4513;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .cell.highlight {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .ladder {
+            background: linear-gradient(135deg, #32CD32, #228B22) !important;
+            color: white !important;
+        }
+
+        .ladder::after {
+            content: '目';
+            position: absolute;
+            font-size: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .snake {
+            background: linear-gradient(135deg, #DC143C, #B22222) !important;
+            color: white !important;
+        }
+
+        .snake::after {
+            content: '🐍';
+            position: absolute;
+            font-size: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .player {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.5s ease;
+            border: 2px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .player1 {
+            background: linear-gradient(135deg, #FF6B6B, #FF4757);
+            top: 5px;
+            left: 5px;
+        }
+
+        .player2 {
+            background: linear-gradient(135deg, #4ECDC4, #45B7B8);
+            top: 5px;
+            right: 5px;
+        }
+
+        .control-panel {
+            width: 300px;
+            background: linear-gradient(135deg, #F4A460, #DEB887);
+            border: 6px solid #8B4513;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            height: fit-content;
+        }
+
+        .panel-section {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 3px solid #8B4513;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .player-info.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            transform: scale(1.05);
+        }
+
+        .dice-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .dice {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dice:hover {
+            transform: scale(1.1);
+        }
+
+        .dice.rolling {
+            animation: roll 1s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #FF6B6B, #FF4757);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            border: 3px solid #8B4513;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ECDC4, #45B7B8);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #32CD32, #228B22);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #F4A460, #DEB887);
+            border: 6px solid #8B4513;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            animation: modalSlide 0.3s ease-out;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .question-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 3px solid #8B4513;
+        }
+
+        .answer-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .answer-btn {
+            background: linear-gradient(135deg, #87CEEB, #4682B4);
+            color: white;
+            border: 3px solid #8B4513;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .answer-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #32CD32, #228B22);
+        }
+
+        .answer-btn.incorrect {
+            background: linear-gradient(135deg, #DC143C, #B22222);
+        }
+
+        .title {
+            text-align: center;
+            color: #8B4513;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .candi-icon {
+            font-size: 24px;
+            margin: 0 10px;
+        }
+
+        .winner-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #8B4513;
+            padding: 15px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            border: 3px solid #8B4513;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #8B4513;
+            text-align: center;
+        }
+
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-panel {
+                width: 100%;
+                max-width: 600px;
+            }
+
+            .cell {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="board-container">
+            <div class="board-header">
+                <h1 class="title">🏛️ BATARA 🏛️</h1>
+                <p>Bermain Tantangan Budaya Prambanan</p>
+                <div class="number-boxes" id="numberBoxes"></div>
+            </div>
+            <div class="game-board" id="gameBoard"></div>
+        </div>
+        
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3 style="text-align: center; color: #8B4513; margin-top: 0;">🎮 Panel Kontrol</h3>
+
+                <div class="player-info" id="player1Info">
+                    <div>
+                        <div style="font-weight: bold;">🛕 Pemain 1</div>
+                        <div>Posisi: <span id="player1Position">1</span></div>
+                    </div>
+                    <div style="font-size: 24px;">🛕</div>
+                </div>
+
+                <div class="player-info" id="player2Info">
+                    <div>
+                        <div style="font-weight: bold;">🏯 Pemain 2</div>
+                        <div>Posisi: <span id="player2Position">1</span></div>
+                    </div>
+                    <div style="font-size: 24px;">🏯</div>
+                </div>
+
+                <div style="text-align: center; margin: 15px 0;">
+                    <strong>Giliran: <span id="currentTurn">Pemain 1</span></strong>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="dice-container">
+                    <div class="dice" id="dice">🎲</div>
+                    <div>
+                        <button class="btn btn-primary" id="rollDiceBtn" onclick="rollDice()">
+                            🎲 Lempar Dadu
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="stats">
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">P1 Benar</div>
+                        <div id="player1Correct">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">P2 Benar</div>
+                        <div id="player2Correct">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">P1 Total</div>
+                        <div id="player1Total">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">P2 Total</div>
+                        <div id="player2Total">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section" style="text-align: center;">
+                <button class="btn" onclick="showRules()">📋 Aturan Bermain</button>
+                <button class="btn btn-success" onclick="resetGame()">🔄 Mulai Ulang</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Aturan -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content">
+            <h2 style="color: #8B4513;">📋 Aturan Bermain</h2>
+            <div style="text-align: left; margin: 20px 0;">
+                <p><strong>🎯 Tujuan:</strong> Menjadi pemain pertama yang mencapai kotak 100!</p>
+                <p><strong>🎲 Cara Bermain:</strong></p>
+                <ul>
+                    <li>Pemain bergiliran melempar dadu</li>
+                    <li>Gerakkan token sesuai angka dadu</li>
+                    <li>Jika mendarat di tangga 目 atau ular 🐍, jawab soal geometri</li>
+                </ul>
+                <p><strong> 目Tangga:</strong></p>
+                <ul>
+                    <li>✅ Jawab benar → Naik tangga</li>
+                    <li>❌ Jawab salah → Tetap di tempat</li>
+                </ul>
+                <p><strong>🐍 Ular:</strong></p>
+                <ul>
+                    <li>✅ Jawab benar → Tetap di tempat</li>
+                    <li>❌ Jawab salah → Turun ke bawah</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary" onclick="closeRules()">Mengerti!</button>
+        </div>
+    </div>
+
+    <!-- Modal Soal -->
+    <div class="modal" id="questionModal">
+        <div class="modal-content">
+            <h3 style="color: #8B4513;">🏛️ Soal Geometri Candi Prambanan</h3>
+            <div class="question-container">
+                <div id="questionText"></div>
+                <div class="answer-options" id="answerOptions"></div>
+            </div>
+            <div id="questionFeedback" style="margin: 15px 0; font-weight: bold;"></div>
+        </div>
+    </div>
+
+    <!-- Modal Pemenang -->
+    <div class="modal" id="winnerModal">
+        <div class="modal-content">
+            <div class="winner-badge">
+                🏆 JUARA BATARA 🏆
+            </div>
+            <h2 id="winnerText" style="color: #8B4513;"></h2>
+            <div id="finalStats" style="margin: 20px 0;"></div>
+            <button class="btn btn-success" onclick="resetGame()">🎮 Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        // Membuat kotak nomor di atas papan
+        function createNumberBoxes() {
+            const container = document.getElementById('numberBoxes');
+            container.innerHTML = '';
+            // Tidak perlu menampilkan angka apapun di sini
+            // Area ini tetap untuk layout jika ingin improvisasi lain
+        }
+        // Game state
+        let currentPlayer = 1;
+        let player1Position = 1;
+        let player2Position = 1;
+        let player1Stats = { correct: 0, total: 0 };
+        let player2Stats = { correct: 0, total: 0 };
+        let gameEnded = false;
+
+        // Posisi tangga dan ular
+        const ladders = {
+            4: 14, 9: 31, 17: 7, 20: 38, 28: 84, 40: 59, 51: 67, 63: 81, 71: 91
+        };
+
+        const snakes = {
+            16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78
+        };
+
+        // Bank soal geometri dengan tema Candi Prambanan
+        const questions = [
+            {
+                question: "Candi Prambanan memiliki bentuk dasar persegi dengan sisi 15 meter. Berapa luas alasnya?",
+                options: ["250 m²", "200 m²", "225 m²", "300 m²"],
+                correct: 2
+            },
+            {
+                question: "Menara utama Candi Prambanan tingginya 47 meter dengan alas berbentuk persegi sisi 20 meter. Berapa volume menara tersebut?",
+                options: ["16.400 m³", "15.600 m³", "20.000 m³", "18.800 m³"],
+                correct: 3
+            },
+            {
+                question: "Relief Candi Prambanan berbentuk lingkaran dengan diameter 4 meter. Berapa kelilingnya?",
+                options: ["25,12 m", "12,56 m", "8,28 m", "16,84 m"],
+                correct: 1
+            },
+            {
+                question: "Anak tangga Candi Prambanan berbentuk trapesium dengan sisi sejajar 8m dan 12m, tinggi 3m. Berapa luasnya?",
+                options: ["30 m²", "36 m²", "24 m²", "42 m²"],
+                correct: 0
+            },
+            {
+                question: "Jendela candi berbentuk segitiga sama sisi dengan sisi 6 meter. Berapa kelilingnya?",
+                options: ["18 m", "24 m", "12 m", "36 m"],
+                correct: 0
+            },
+            {
+                question: "Halaman candi berbentuk persegi panjang 50m × 30m. Berapa luasnya?",
+                options: ["1.100 m²", "1.500 m²", "1.800 m²", "1.600 m²"],
+                correct: 1
+            },
+            {
+                question: "Pilar candi berbentuk silinder dengan jari-jari 2m dan tinggi 10m. Berapa volume pilar tersebut?",
+                options: ["150,72 m³", "100,48 m³", "125,6 m³", "200,96 m³"],
+                correct: 2
+            },
+            {
+                question: "Ornamen candi berbentuk belah ketupat dengan diagonal 8m dan 6m. Berapa luasnya?",
+                options: ["24 m²", "28 m²", "32 m²", "20 m²"],
+                correct: 0
+            },
+            {
+                question: "Gerbang candi berbentuk setengah lingkaran dengan jari-jari 5m. Berapa luasnya?",
+                options: ["50,1 m²", "78,5 m²", "31,4 m²", "39,25 m²"],
+                correct: 3
+            },
+            {
+                question: "Kolam di depan candi berbentuk lingkaran dengan jari-jari 7m. Berapa luasnya?",
+                options: ["153,86 m²", "175,84 m²", "131,88 m²", "200,96 m²"],
+                correct: 0
+            },
+            {
+                question: "Atap candi berbentuk kerucut dengan jari-jari alas 8m dan tinggi 12m. Berapa volumenya?",
+                options: ["603,19 m³", "1.005,31 m³", "804,25 m³", "1.206,37 m³"],
+                correct: 1
+            },
+            {
+                question: "Dinding candi berbentuk persegi panjang 25m × 15m. Berapa kelilingnya?",
+                options: ["70 m", "80 m", "90 m", "100 m"],
+                correct: 0
+            },
+            {
+                question: "Lantai ruang utama candi berbentuk persegi dengan luas 144 m². Berapa panjang sisinya?",
+                options: ["16 m", "14 m", "12 m", "10 m"],
+                correct: 2
+            },
+            {
+                question: "Jalan mengelilingi candi berbentuk lingkaran dengan keliling 62,8 m. Berapa jari-jarinya?",
+                options: ["8 m", "10 m", "12 m", "15 m"],
+                correct: 1
+            },
+            {
+                question: "Pondasi candi berbentuk kubus dengan volume 1.728 m³. Berapa panjang rusuknya?",
+                options: ["11 m", "15 m", "10 m", "12 m"],
+                correct: 3
+            },
+            {
+                question: "Taman di sekitar candi berbentuk segitiga dengan alas 20m dan tinggi 15m. Berapa luasnya?",
+                options: ["200 m²", "175 m²", "150 m²", "125 m²"],
+                correct: 2
+            },
+            {
+                question: "Menara kecil berbentuk prisma segitiga dengan alas segitiga sama sisi 6m dan tinggi prisma 20m. Berapa volumenya?",
+                options: ["311,77 m³", "360 m³", "280,62 m³", "415,69 m³"],
+                correct: 0
+            },
+            {
+                question: "Parit di sekitar candi berbentuk persegi panjang dengan keliling 120m. Jika lebarnya 20m, berapa panjangnya?",
+                options: ["35 m", "40 m", "45 m", "50 m"],
+                correct: 3
+            },
+            {
+                question: "Ukiran berbentuk lingkaran dengan luas 78,5 m². Berapa diameternya?",
+                options: ["10 m", "8 m", "12 m", "14 m"],
+                correct: 0
+            },
+            {
+                question: "Tangga candi memiliki 15 anak tangga, masing-masing tinggi 20 cm. Berapa total tinggi tangga?",
+                options: ["2,5 m", "3 m", "3,5 m", "4 m"],
+                correct: 1
+            }
+        ];
+
+        // Inisialisasi game
+        function initGame() {
+            createNumberBoxes();
+            createBoard();
+            updatePlayerInfo();
+            updateStats();
+        }
+
+        // Membuat papan permainan
+        function createBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+
+            for (let i = 100; i >= 1; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `cell-${i}`;
+
+                // Menentukan posisi berdasarkan pola zig-zag
+                const row = Math.floor((100 - i) / 10);
+                const isEvenRow = row % 2 === 0;
+                const col = isEvenRow ? (100 - i) % 10 : 9 - ((100 - i) % 10);
+
+                cell.style.order = row * 10 + col;
+                cell.textContent = i;
+
+                // Menambahkan tangga dan ular
+                if (ladders[i]) {
+                    cell.classList.add('ladder');
+                }
+                if (snakes[i]) {
+                    cell.classList.add('snake');
+                }
+
+                board.appendChild(cell);
+            }
+
+            // Menempatkan pemain di posisi awal
+            updatePlayerPositions();
+        }
+
+        // Update posisi pemain di papan
+        function updatePlayerPositions() {
+            // Hapus pemain dari semua sel
+            document.querySelectorAll('.player').forEach(p => p.remove());
+
+            // Tambahkan pemain 1
+            const cell1 = document.getElementById(`cell-${player1Position}`);
+            const player1Element = document.createElement('div');
+            player1Element.className = 'player player1';
+            player1Element.textContent = '🛕';
+            cell1.appendChild(player1Element);
+
+            // Tambahkan pemain 2
+            const cell2 = document.getElementById(`cell-${player2Position}`);
+            const player2Element = document.createElement('div');
+            player2Element.className = 'player player2';
+            player2Element.textContent = '🏯';
+            cell2.appendChild(player2Element);
+        }
+
+        // Update info pemain
+        function updatePlayerInfo() {
+            document.getElementById('player1Position').textContent = player1Position;
+            document.getElementById('player2Position').textContent = player2Position;
+            document.getElementById('currentTurn').textContent = `Pemain ${currentPlayer}`;
+
+            // Highlight pemain aktif
+            document.getElementById('player1Info').classList.toggle('active', currentPlayer === 1);
+            document.getElementById('player2Info').classList.toggle('active', currentPlayer === 2);
+        }
+
+        // Update statistik
+        function updateStats() {
+            document.getElementById('player1Correct').textContent = player1Stats.correct;
+            document.getElementById('player2Correct').textContent = player2Stats.correct;
+            document.getElementById('player1Total').textContent = player1Stats.total;
+            document.getElementById('player2Total').textContent = player2Stats.total;
+        }
+
+        // Lempar dadu
+        function rollDice() {
+            if (gameEnded) return;
+
+            const dice = document.getElementById('dice');
+            const rollBtn = document.getElementById('rollDiceBtn');
+
+            rollBtn.disabled = true;
+            dice.classList.add('rolling');
+
+            // Animasi dadu
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                dice.textContent = Math.floor(Math.random() * 6) + 1;
+                rollCount++;
+
+                if (rollCount > 10) {
+                    clearInterval(rollInterval);
+                    const finalRoll = Math.floor(Math.random() * 6) + 1;
+                    dice.textContent = finalRoll;
+                    dice.classList.remove('rolling');
+
+                    setTimeout(() => {
+                        movePlayer(finalRoll);
+                    }, 500);
+                }
+            }, 100);
+        }
+
+        // Gerakkan pemain
+        function movePlayer(steps) {
+            const currentPos = currentPlayer === 1 ? player1Position : player2Position;
+            let newPos = currentPos + steps;
+
+            // Batasi posisi maksimal 100
+            if (newPos > 100) {
+                newPos = 100;
+            }
+
+            // Update posisi
+            if (currentPlayer === 1) {
+                player1Position = newPos;
+            } else {
+                player2Position = newPos;
+            }
+
+            // Highlight sel tujuan
+            document.getElementById(`cell-${newPos}`).classList.add('highlight');
+
+            setTimeout(() => {
+                updatePlayerPositions();
+                updatePlayerInfo();
+
+                // Hapus highlight
+                setTimeout(() => {
+                    document.getElementById(`cell-${newPos}`).classList.remove('highlight');
+                }, 1000);
+
+                // Cek apakah menang
+                if (newPos === 100) {
+                    showWinner();
+                    return;
+                }
+
+                // Cek tangga atau ular
+                if (ladders[newPos] || snakes[newPos]) {
+                    showQuestion(newPos);
+                } else {
+                    nextTurn();
+                }
+            }, 500);
+        }
+
+        // Tampilkan soal
+        function showQuestion(position) {
+            const isLadder = ladders[position];
+            const isSnake = snakes[position];
+            const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+
+            document.getElementById('questionText').textContent = randomQuestion.question;
+
+            const optionsContainer = document.getElementById('answerOptions');
+            optionsContainer.innerHTML = '';
+
+            randomQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn';
+                button.textContent = option;
+                button.onclick = () => answerQuestion(index, randomQuestion.correct, position, isLadder, isSnake);
+                optionsContainer.appendChild(button);
+            });
+
+            document.getElementById('questionFeedback').textContent = '';
+            document.getElementById('questionModal').classList.add('show');
+        }
+
+        // Jawab soal
+        function answerQuestion(selectedIndex, correctIndex, position, isLadder, isSnake) {
+            const isCorrect = selectedIndex === correctIndex;
+            const buttons = document.querySelectorAll('.answer-btn');
+            const feedback = document.getElementById('questionFeedback');
+
+            // Update statistik
+            if (currentPlayer === 1) {
+                player1Stats.total++;
+                if (isCorrect) player1Stats.correct++;
+            } else {
+                player2Stats.total++;
+                if (isCorrect) player2Stats.correct++;
+            }
+
+            // Warnai tombol
+            buttons.forEach((btn, index) => {
+                if (index === correctIndex) {
+                    btn.classList.add('correct');
+                } else if (index === selectedIndex && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+                btn.disabled = true;
+            });
+
+            // Feedback dan aksi
+            let newPosition = position;
+            if (isLadder) {
+                if (isCorrect) {
+                    newPosition = ladders[position];
+                    feedback.innerHTML = `✅ Benar! Kamu naik tangga ke kotak ${newPosition}!`;
+                    feedback.style.color = '#228B22';
+                } else {
+                    feedback.innerHTML = `❌ Jawaban salah, tetap di tempat.`;
+                    feedback.style.color = '#DC143C';
+                }
+            } else if (isSnake) {
+                if (isCorrect) {
+                    feedback.innerHTML = `✅ Benar! Kamu tetap di tempat.`;
+                    feedback.style.color = '#228B22';
+                } else {
+                    newPosition = snakes[position];
+                    feedback.innerHTML = `❌ Jawaban salah, turun ke kotak ${newPosition}!`;
+                    feedback.style.color = '#DC143C';
+                }
+            }
+
+            // Update posisi jika berubah
+            if (newPosition !== position) {
+                if (currentPlayer === 1) {
+                    player1Position = newPosition;
+                } else {
+                    player2Position = newPosition;
+                }
+            }
+
+            setTimeout(() => {
+                document.getElementById('questionModal').classList.remove('show');
+                updatePlayerPositions();
+                updatePlayerInfo();
+                updateStats();
+
+                // Cek apakah menang setelah naik tangga
+                if (newPosition === 100) {
+                    showWinner();
+                } else {
+                    nextTurn();
+                }
+            }, 3000);
+        }
+
+        // Ganti giliran
+        function nextTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updatePlayerInfo();
+            document.getElementById('rollDiceBtn').disabled = false;
+        }
+
+        // Tampilkan pemenang
+        function showWinner() {
+            gameEnded = true;
+            const winner = currentPlayer === 1 ? "Pemain 1 🛕" : "Pemain 2 🏯";
+            const winnerStats = currentPlayer === 1 ? player1Stats : player2Stats;
+
+            document.getElementById('winnerText').textContent = `${winner} Menang!`;
+            document.getElementById('finalStats').innerHTML = `
+                <div class="stats">
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">Soal Dijawab</div>
+                        <div>${winnerStats.total}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">Jawaban Benar</div>
+                        <div>${winnerStats.correct}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">Akurasi</div>
+                        <div>${winnerStats.total > 0 ? Math.round((winnerStats.correct / winnerStats.total) * 100) : 0}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div style="font-weight: bold;">Skor</div>
+                        <div>${winnerStats.correct * 10}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('winnerModal').classList.add('show');
+        }
+
+        // Reset game
+        function resetGame() {
+            currentPlayer = 1;
+            player1Position = 1;
+            player2Position = 1;
+            player1Stats = { correct: 0, total: 0 };
+            player2Stats = { correct: 0, total: 0 };
+            gameEnded = false;
+
+            document.getElementById('rollDiceBtn').disabled = false;
+            document.getElementById('dice').textContent = '🎲';
+
+            // Tutup semua modal
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('show');
+            });
+
+            updatePlayerPositions();
+            updatePlayerInfo();
+            updateStats();
+        }
+
+        // Tampilkan aturan
+        function showRules() {
+            document.getElementById('rulesModal').classList.add('show');
+        }
+
+        // Tutup aturan
+        function closeRules() {
+            document.getElementById('rulesModal').classList.remove('show');
+        }
+
+        // Inisialisasi game saat halaman dimuat
+        window.onload = initGame;
+    </script>
+</body>
+</html>
